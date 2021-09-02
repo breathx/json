@@ -1,4 +1,5 @@
 //! Deserialize JSON data to a Rust data structure.
+#![allow(unused)]
 
 use crate::error::{Error, ErrorCode, Result};
 #[cfg(feature = "float_roundtrip")]
@@ -92,7 +93,6 @@ macro_rules! overflow {
 }
 
 pub(crate) enum ParserNumber {
-    F64(f64),
     U64(u64),
     I64(i64),
     #[cfg(feature = "arbitrary_precision")]
@@ -105,7 +105,6 @@ impl ParserNumber {
         V: de::Visitor<'de>,
     {
         match self {
-            ParserNumber::F64(x) => visitor.visit_f64(x),
             ParserNumber::U64(x) => visitor.visit_u64(x),
             ParserNumber::I64(x) => visitor.visit_i64(x),
             #[cfg(feature = "arbitrary_precision")]
@@ -115,7 +114,6 @@ impl ParserNumber {
 
     fn invalid_type(self, exp: &dyn Expected) -> Error {
         match self {
-            ParserNumber::F64(x) => de::Error::invalid_type(Unexpected::Float(x), exp),
             ParserNumber::U64(x) => de::Error::invalid_type(Unexpected::Unsigned(x), exp),
             ParserNumber::I64(x) => de::Error::invalid_type(Unexpected::Signed(x), exp),
             #[cfg(feature = "arbitrary_precision")]
@@ -406,9 +404,7 @@ impl<'de, R: Read<'de>> Deserializer<R> {
                             // too large. At that point, switch to parsing the
                             // value as a `f64`.
                             if overflow!(significand * 10 + digit, u64::max_value()) {
-                                return Ok(ParserNumber::F64(tri!(
-                                    self.parse_long_integer(positive, significand),
-                                )));
+                                return Ok(ParserNumber::U64(u64::max_value()));
                             }
 
                             self.eat_char();
@@ -426,8 +422,8 @@ impl<'de, R: Read<'de>> Deserializer<R> {
 
     fn parse_number(&mut self, positive: bool, significand: u64) -> Result<ParserNumber> {
         Ok(match tri!(self.peek_or_null()) {
-            b'.' => ParserNumber::F64(tri!(self.parse_decimal(positive, significand, 0))),
-            b'e' | b'E' => ParserNumber::F64(tri!(self.parse_exponent(positive, significand, 0))),
+            //b'.' => ParserNumber::F64(tri!(self.parse_decimal(positive, significand, 0))),
+            //b'e' | b'E' => ParserNumber::F64(tri!(self.parse_exponent(positive, significand, 0))),
             _ => {
                 if positive {
                     ParserNumber::U64(significand)
@@ -435,11 +431,9 @@ impl<'de, R: Read<'de>> Deserializer<R> {
                     let neg = (significand as i64).wrapping_neg();
 
                     // Convert into a float if we underflow.
-                    if neg > 0 {
-                        ParserNumber::F64(-(significand as f64))
-                    } else {
-                        ParserNumber::I64(neg)
-                    }
+                    
+                    ParserNumber::I64(neg)
+
                 }
             }
         })
