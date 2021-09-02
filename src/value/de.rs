@@ -2,7 +2,6 @@ use crate::error::Error;
 use crate::lib::str::FromStr;
 use crate::lib::*;
 use crate::map::Map;
-use crate::number::Number;
 use crate::value::Value;
 use serde::de::{
     self, Deserialize, DeserializeSeed, EnumAccess, Expected, IntoDeserializer, MapAccess,
@@ -41,11 +40,6 @@ impl<'de> Deserialize<'de> for Value {
             #[inline]
             fn visit_u64<E>(self, value: u64) -> Result<Value, E> {
                 Ok(Value::Number(value.into()))
-            }
-
-            #[inline]
-            fn visit_f64<E>(self, value: f64) -> Result<Value, E> {
-                Ok(Number::from_f64(value).map_or(Value::Null, Value::Number))
             }
 
             #[cfg(any(feature = "std", feature = "alloc"))]
