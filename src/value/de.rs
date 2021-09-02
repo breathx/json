@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use crate::error::Error;
 use crate::lib::str::FromStr;
 use crate::lib::*;
